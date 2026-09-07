@@ -1,344 +1,222 @@
 <!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#eef7ff">
-  <title>Orbia v0.1 | 業務整理・管理システム</title>
-  <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#edf6ff">
+<title>Orbia v0.3 β | 業務標準化・管理システム</title>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand-mini">
-        <div class="cat-badge">🐱</div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><img src="assets/orbia-cat-small.png" alt=""><div><b>Orbia</b><small>業務標準化・管理</small></div></div>
+    <nav id="nav">
+      <button class="nav active" data-view="home">🏠<b>ホーム</b></button>
+      <button class="nav" data-view="calendar">📅<b>カレンダー</b></button>
+      <button class="nav" data-view="todo">✅<b>TODOリスト</b></button>
+      <button class="nav" data-view="work">💼<b>業務</b></button>
+      <button class="nav" data-view="handover">🔄<b>引継ぎ</b></button>
+      <button class="nav" data-view="inquiry">🔎<b>照会・調査</b></button>
+      <button class="nav" data-view="settings">⚙️<b>設定</b></button>
+      <button class="nav" data-view="help">📖<b>使い方</b></button>
+    </nav>
+    <div class="side-cat"><img src="assets/orbia-cat-small.png" alt=""><span>誰が休んでも<br>仕事がつながるにゃ 🐾</span></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <img class="logo" src="assets/orbia-logo.png" alt="Orbia オルビア">
+      <div class="top-actions">
+        <label>表示
+          <select id="roleMode">
+            <option value="all">全体</option>
+            <option value="planning">経営企画係長</option>
+            <option value="billing">算定病歴係長</option>
+          </select>
+        </label>
+        <button id="backupTop" class="ghost">💾 バックアップ</button>
+      </div>
+    </header>
+
+    <section id="home" class="view active">
+      <div class="welcome">
         <div>
-          <strong>Orbia</strong>
-          <small>業務整理・管理</small>
-        </div>
-      </div>
-
-      <nav id="mainNav" class="nav-list" aria-label="メインメニュー">
-        <button data-view="home" class="nav-item active"><span>🏠</span><b>ホーム</b></button>
-        <button data-view="calendar" class="nav-item"><span>📅</span><b>カレンダー</b></button>
-        <button data-view="todo" class="nav-item"><span>✅</span><b>TODO</b></button>
-        <button data-view="mail" class="nav-item"><span>✉️</span><b>メール</b></button>
-        <button data-view="dashboard" class="nav-item"><span>📊</span><b>集計</b></button>
-        <button data-view="simulation" class="nav-item"><span>🧮</span><b>試算</b></button>
-        <button data-view="import" class="nav-item"><span>📥</span><b>データ取込</b></button>
-        <button data-view="templates" class="nav-item"><span>📄</span><b>様式・資料</b></button>
-        <button data-view="settings" class="nav-item"><span>⚙️</span><b>設定</b></button>
-      </nav>
-
-      <div class="sidebar-note">
-        <span>🐾</span>
-        <p>GitHub試作版<br><small>ダミーデータのみ</small></p>
-      </div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <div class="logo-wrap">
-          <img src="assets/orbia-logo.png" alt="Orbia オルビア 業務整理・管理システム" class="logo">
-        </div>
-        <div class="top-actions">
-          <label>
-            <span>表示モード</span>
-            <select id="roleMode">
-              <option value="billing">算定病歴係長</option>
-              <option value="planning">経営企画係長</option>
-            </select>
-          </label>
-          <button id="backupBtn" class="soft-btn">💾 バックアップ</button>
-        </div>
-      </header>
-
-      <section id="home" class="view active">
-        <div class="hero-card">
-          <div>
-            <p class="eyebrow">TODAY'S ORBIA</p>
-            <h1><span id="welcomeRole">算定病歴係長</span>の業務を、やさしく見える化。</h1>
-            <p id="todayText">今日の予定と優先業務をまとめています。</p>
+          <span class="eyebrow">ORBIA WORK STANDARDIZATION</span>
+          <h1>誰がいても、誰が休んでも、仕事がつながる。</h1>
+          <p>予定・進捗・やり方・照会結果まで、ひとつに。</p>
+          <div class="role-cards">
+            <button class="role-card planning" data-role="planning"><span>📊🐱</span><b>経営企画係長</b><small>病院経営・報告・会議</small></button>
+            <button class="role-card billing" data-role="billing"><span>🏥🐱</span><b>算定病歴係長</b><small>施設基準・算定・届出</small></button>
           </div>
-          <div class="hero-cat">🐱📋</div>
         </div>
+        <div class="welcome-cat"><img src="assets/orbia-cat-medium.png" alt=""><div class="bubble">今日の仕事も<br><b>一緒に整理するにゃ</b></div></div>
+      </div>
 
-        <div class="stat-grid">
-          <article class="stat blue">
-            <span>今日の予定</span>
-            <strong id="statEvents">0</strong>
-            <small>件</small>
-          </article>
-          <article class="stat pink">
-            <span>優先度「高」</span>
-            <strong id="statHigh">0</strong>
-            <small>件</small>
-          </article>
-          <article class="stat mint">
-            <span>TODO完了率</span>
-            <strong id="statDone">0%</strong>
-            <small>今週</small>
-          </article>
-          <article class="stat lavender">
-            <span>今月の資料</span>
-            <strong id="statDocs">4</strong>
-            <small>種類</small>
-          </article>
-        </div>
-
-        <div class="home-grid">
-          <section class="panel">
-            <div class="panel-title">
-              <div>
-                <small>QUICK MENU</small>
-                <h2>よく使う機能</h2>
-              </div>
-              <span class="mini-cat">🐾</span>
-            </div>
-            <div class="quick-grid">
-              <button class="quick-card c-blue" data-jump="calendar"><span>📅🐱</span><b>予定を登録</b><small>日付・時間・種類を設定</small></button>
-              <button class="quick-card c-mint" data-jump="todo"><span>✅🐾</span><b>TODO追加</b><small>優先順位と期限を管理</small></button>
-              <button class="quick-card c-lav" data-jump="mail"><span>✉️🐱</span><b>督促メール</b><small>テンプレートから下書き</small></button>
-              <button class="quick-card c-cream" data-jump="dashboard"><span>📊🐾</span><b>集計を見る</b><small>院内データの結果表示</small></button>
-              <button class="quick-card c-green" data-jump="simulation"><span>🧮🐱</span><b>試算する</b><small>実績を変えずに比較</small></button>
-              <button class="quick-card c-pink" data-jump="templates"><span>📄🐾</span><b>様式作成</b><small>定型Excel出力の入口</small></button>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-title">
-              <div><small>PRIORITY</small><h2>優先業務</h2></div>
-            </div>
-            <div id="homePriority" class="stack-list"></div>
-          </section>
-        </div>
-      </section>
-
-      <section id="calendar" class="view">
-        <div class="page-heading">
-          <div><small>SCHEDULE</small><h1>カレンダー</h1><p>日付を選んで予定を登録できます。</p></div>
-          <span class="page-icon c-blue">📅🐱</span>
-        </div>
-        <div class="calendar-layout">
-          <section class="panel">
-            <div class="calendar-head">
-              <button id="prevMonth" class="icon-btn">‹</button>
-              <h2 id="monthLabel"></h2>
-              <button id="nextMonth" class="icon-btn">›</button>
-            </div>
-            <div class="week-head"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
-            <div id="calendarGrid" class="calendar-grid"></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-title"><div><small>NEW SCHEDULE</small><h2>予定設定</h2></div></div>
-            <p id="selectedDateText" class="selected-date"></p>
-            <form id="eventForm" class="form-stack">
-              <label>予定名<input id="eventTitle" required placeholder="例：院長報告資料作成"></label>
-              <div class="form-two">
-                <label>開始<input id="eventStart" type="time" value="09:00"></label>
-                <label>終了<input id="eventEnd" type="time" value="10:00"></label>
-              </div>
-              <label>種類
-                <select id="eventCategory">
-                  <option>資料作成</option><option>提出・締切</option><option>会議</option><option>集計</option><option>確認</option><option>その他</option>
-                </select>
-              </label>
-              <label>メモ<textarea id="eventMemo" rows="3" placeholder="必要なら入力"></textarea></label>
-              <button class="primary-btn">予定を登録</button>
-            </form>
-            <div class="subsection">
-              <h3>この日の予定</h3>
-              <div id="dayEvents" class="stack-list"></div>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <section id="todo" class="view">
-        <div class="page-heading">
-          <div><small>TASKS</small><h1>TODOリスト</h1><p>期限と優先順位で並び替えて確認できます。</p></div>
-          <span class="page-icon c-mint">✅🐱</span>
-        </div>
-        <div class="two-col">
-          <section class="panel">
-            <div class="panel-title"><div><small>NEW TASK</small><h2>TODO追加</h2></div></div>
-            <form id="todoForm" class="form-stack">
-              <label>業務名<input id="todoTitle" required placeholder="例：看護必要度3か月平均確認"></label>
-              <label>期限<input id="todoDue" type="date"></label>
-              <label>優先度<select id="todoPriority"><option>高</option><option selected>中</option><option>低</option></select></label>
-              <label>分類<select id="todoCategory"><option>施設基準</option><option>月次集計</option><option>本部報告</option><option>会議</option><option>経営資料</option><option>その他</option></select></label>
-              <button class="primary-btn mint-btn">追加する</button>
-            </form>
-          </section>
-          <section class="panel">
-            <div class="panel-title row">
-              <div><small>PRIORITY LIST</small><h2>優先順位一覧</h2></div>
-              <select id="todoFilter" class="mini-select"><option value="all">すべて</option><option value="open">未完了</option><option value="高">高</option><option value="中">中</option><option value="低">低</option></select>
-            </div>
-            <div id="todoList" class="todo-list"></div>
-          </section>
-        </div>
-      </section>
-
-      <section id="mail" class="view">
-        <div class="page-heading">
-          <div><small>MAIL SUPPORT</small><h1>メール</h1><p>テンプレートから督促・依頼メールの下書きを作成します。</p></div>
-          <span class="page-icon c-lav">✉️🐱</span>
-        </div>
-        <div class="two-col mail-layout">
-          <section class="panel">
-            <div class="panel-title"><div><small>MAIL SETTING</small><h2>メール設定</h2></div></div>
-            <form id="mailSettingForm" class="form-stack">
-              <label>送信者表示名<input id="senderName"></label>
-              <label>署名<textarea id="signature" rows="6"></textarea></label>
-              <button class="secondary-btn">設定を保存</button>
-            </form>
-            <div class="note-box">🔐 GitHub版ではメールサーバーに接続しません。下書きを作成し、標準メールアプリで開く方式です。本番ではOutlook＋Power Automateへの置換を想定しています。</div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-title"><div><small>COMPOSE</small><h2>メール作成</h2></div></div>
-            <form id="mailForm" class="form-stack">
-              <label>テンプレート<select id="mailTemplate"><option value="request">資料提出のお願い</option><option value="remind">提出期限のご案内</option><option value="overdue">期限超過の再依頼</option><option value="thanks">提出のお礼</option></select></label>
-              <label>宛先<input id="mailTo" type="email" placeholder="department@example.jp"></label>
-              <label>件名<input id="mailSubject"></label>
-              <label>本文<textarea id="mailBody" rows="10"></textarea></label>
-              <div class="button-row">
-                <button type="button" id="makeMailDraft" class="primary-btn lav-btn">メールアプリで開く</button>
-                <button type="button" id="saveMailLog" class="secondary-btn">送信履歴に登録</button>
-              </div>
-            </form>
-            <div id="mailLog" class="subsection"></div>
-          </section>
-        </div>
-      </section>
-
-      <section id="dashboard" class="view">
-        <div class="page-heading">
-          <div><small>RESULT DASHBOARD</small><h1>集計ダッシュボード</h1><p>生データではなく、取り込み・整形後の集計結果を表示します。</p></div>
-          <span class="page-icon c-cream">📊🐱</span>
-        </div>
-        <div class="filter-bar">
-          <label>対象月<input id="dashboardMonth" type="month" value="2026-08"></label>
-          <label>表示区分<select id="dashboardType"><option>院内全体</option><option>診療実績</option><option>施設基準</option><option>経営指標</option></select></label>
-          <button id="refreshDashboard" class="primary-btn">集計結果を更新</button>
-        </div>
-        <div class="stat-grid dashboard-stats">
-          <article class="stat blue"><span>入院患者数</span><strong id="dInpatient">1,284</strong><small>人</small></article>
-          <article class="stat mint"><span>病床利用率</span><strong id="dOccupancy">82.4%</strong><small>実績</small></article>
-          <article class="stat lavender"><span>救急応需率</span><strong id="dEmergency">78.6%</strong><small>実績</small></article>
-          <article class="stat cream"><span>手術件数</span><strong id="dSurgery">312</strong><small>件</small></article>
-        </div>
-        <div class="two-col">
-          <section class="panel">
-            <div class="panel-title"><div><small>MONTHLY TREND</small><h2>月別実績</h2></div></div>
-            <div id="barChart" class="bar-chart"></div>
-          </section>
-          <section class="panel">
-            <div class="panel-title"><div><small>STATUS</small><h2>確認ポイント</h2></div></div>
-            <div class="stack-list">
-              <div class="info-row ok"><b>✓ 病床利用率</b><span>前月比 +1.2pt</span></div>
-              <div class="info-row warn"><b>! 救急応需率</b><span>目標との差 -1.4pt</span></div>
-              <div class="info-row"><b>手術件数</b><span>前年同月比 +18件</span></div>
-              <div class="info-row"><b>資料未確認</b><span>2件</span></div>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <section id="simulation" class="view">
-        <div class="page-heading">
-          <div><small>SIMULATION</small><h1>試算</h1><p>実績データを変更せず、仮条件で結果を比較します。</p></div>
-          <span class="page-icon c-green">🧮🐱</span>
-        </div>
-        <div class="simulation-grid">
-          <section class="panel current-panel">
-            <small>CURRENT</small><h2>現在実績</h2>
-            <div class="big-number"><strong id="currentRate">19.3</strong><span>%</span></div>
-            <p>該当患者 <b id="currentHits">193</b> / 評価対象 <b id="currentTotal">1000</b></p>
-          </section>
-          <section class="panel">
-            <small>CONDITION</small><h2>条件変更</h2>
-            <div class="form-stack">
-              <label>該当患者の増減<input id="simAddHits" type="number" value="10" min="-193" max="1000"></label>
-              <label>評価対象患者の増減<input id="simAddTotal" type="number" value="0" min="-999" max="5000"></label>
-              <label>基準値（%）<input id="simThreshold" type="number" value="20" min="0" max="100" step="0.1"></label>
-              <button id="runSimulation" class="primary-btn green-btn">試算する</button>
-            </div>
-          </section>
-          <section class="panel result-panel">
-            <small>RESULT</small><h2>試算結果</h2>
-            <div class="big-number"><strong id="simRate">20.3</strong><span>%</span></div>
-            <p id="simJudgement" class="judgement ok">基準達成</p>
-            <p id="simDiff">現在より +1.0pt</p>
-          </section>
-        </div>
-      </section>
-
-      <section id="import" class="view">
-        <div class="page-heading">
-          <div><small>DATA IMPORT</small><h1>データ取込</h1><p>GitHub版ではCSVをブラウザ内で読み込み、プレビューします。</p></div>
-          <span class="page-icon c-blue">📥🐱</span>
-        </div>
-        <div class="two-col">
-          <section class="panel">
-            <div class="panel-title"><div><small>IMPORT CSV</small><h2>ファイル選択</h2></div></div>
-            <div class="upload-zone">
-              <span>📁🐾</span>
-              <b>CSVファイルを選択</b>
-              <p>患者氏名・患者IDなどの実データはGitHub版へ入れないでください。</p>
-              <input id="csvFile" type="file" accept=".csv,text/csv">
-            </div>
-            <div class="note-box">本番移行時はSharePointフォルダ＋Power Query等からの取得へ置き換える想定です。</div>
-          </section>
-          <section class="panel">
-            <div class="panel-title"><div><small>PREVIEW</small><h2>取込プレビュー</h2></div></div>
-            <div id="csvMeta" class="mini-meta">未取込</div>
-            <div class="table-wrap"><table id="csvPreview"><thead></thead><tbody></tbody></table></div>
-          </section>
-        </div>
-      </section>
-
-      <section id="templates" class="view">
-        <div class="page-heading">
-          <div><small>TEMPLATES & DOCUMENTS</small><h1>様式・資料</h1><p>Excel様式・重要資料・データ抽出の入口です。</p></div>
-          <span class="page-icon c-pink">📄🐱</span>
-        </div>
-        <div class="template-grid">
-          <article class="template-card c-blue"><span>📄</span><h3>様式マスタ</h3><p>本部・院内の定型Excelを登録</p><button data-demo="様式マスタ">開く</button></article>
-          <article class="template-card c-cream"><span>📚</span><h3>重要資料</h3><p>通知・規程・過年度資料</p><button data-demo="重要資料">開く</button></article>
-          <article class="template-card c-green"><span>📤</span><h3>データ抽出</h3><p>期間・項目を選択して出力</p><button data-demo="データ抽出">開く</button></article>
-          <article class="template-card c-lav"><span>🧮</span><h3>試算結果資料</h3><p>実績と試算の比較資料</p><button data-demo="試算結果資料">開く</button></article>
-        </div>
+      <div class="home-grid">
         <section class="panel">
-          <h2>v0.1での考え方</h2>
-          <p>この画面は入口まで。実際の「Excelセルへの差し込み」「完成Excel生成」は、次版でOffice Scripts / Power Automateまたはサーバー側処理へ追加します。</p>
+          <div class="panel-head"><div><span class="eyebrow">TODAY / THIS WEEK</span><h2>両係長のスケジュール</h2></div><button class="linkbtn" data-jump="calendar">カレンダーへ</button></div>
+          <div id="homeSchedule" class="list"></div>
         </section>
-      </section>
+        <section class="panel">
+          <div class="panel-head"><div><span class="eyebrow">TODO</span><h2>期限の近いTODO</h2></div><button class="linkbtn" data-jump="todo">すべて見る</button></div>
+          <div id="homeTodo" class="list"></div>
+        </section>
+      </div>
 
-      <section id="settings" class="view">
-        <div class="page-heading">
-          <div><small>SETTINGS</small><h1>設定</h1><p>試作版のデータ保存・初期化を行います。</p></div>
-          <span class="page-icon c-lav">⚙️🐱</span>
+      <section id="roleDashboard" class="panel role-dashboard"></section>
+    </section>
+
+    <section id="calendar" class="view">
+      <div class="page-title"><div><span class="eyebrow">CALENDAR</span><h1>カレンダー</h1><p>予定・TODO期限をまとめて確認。予定の変更・削除・メール設定もできます。</p></div><img src="assets/orbia-cat-small.png" alt=""></div>
+      <div class="calendar-toolbar">
+        <div class="checks">
+          <label><input type="checkbox" class="calFilter" value="planning" checked> 経営企画</label>
+          <label><input type="checkbox" class="calFilter" value="billing" checked> 算定病歴</label>
+          <label><input type="checkbox" id="showTodoCal" checked> TODO期限</label>
         </div>
-        <section class="panel settings-panel">
-          <div>
-            <h2>ローカルデータ</h2>
-            <p>予定・TODO・メール設定はこのブラウザのlocalStorageに保存されます。</p>
-          </div>
-          <div class="button-row">
-            <button id="exportBtn" class="secondary-btn">JSONバックアップ</button>
-            <label class="secondary-btn file-btn">JSON復元<input id="restoreFile" type="file" accept=".json,application/json" hidden></label>
-            <button id="resetBtn" class="danger-btn">初期データへ戻す</button>
-          </div>
+      </div>
+      <div class="two">
+        <section class="panel">
+          <div class="cal-head"><button id="prevMonth">‹</button><h2 id="monthLabel"></h2><button id="nextMonth">›</button></div>
+          <div class="weekday"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+          <div id="calendarGrid" class="calendar-grid"></div>
         </section>
+        <section class="panel">
+          <div class="panel-head"><div><span class="eyebrow">SCHEDULE DETAIL</span><h2 id="eventFormTitle">予定を登録</h2></div></div>
+          <div id="selectedDateText" class="date-chip"></div>
+          <form id="eventForm" class="form">
+            <input id="editingEventId" type="hidden">
+            <label>担当<select id="eventRole"><option value="planning">経営企画係長</option><option value="billing">算定病歴係長</option></select></label>
+            <label>予定名<input id="eventTitle" required></label>
+            <div class="twocol"><label>開始<input id="eventStart" type="time" value="09:00"></label><label>終了<input id="eventEnd" type="time" value="10:00"></label></div>
+            <label>種類<select id="eventKind"><option>報告</option><option>会議</option><option>委員会</option><option>検証</option><option>資料作成</option><option>届出</option><option>その他</option></select></label>
+            <label>メモ<textarea id="eventMemo" rows="3"></textarea></label>
+            <fieldset class="mail-box">
+              <legend>✉ メール設定</legend>
+              <label class="inline"><input id="eventMailEnabled" type="checkbox"> この予定にメール設定を付ける</label>
+              <label>宛先<input id="eventMailTo" type="email" placeholder="department@example.jp"></label>
+              <label>送信タイミング<select id="eventMailTiming"><option>7日前</option><option>3日前</option><option>前日</option><option>当日</option></select></label>
+              <label>テンプレート<select id="eventMailTemplate"><option>資料提出のお願い</option><option>提出期限のご案内</option><option>会議リマインド</option></select></label>
+            </fieldset>
+            <div class="buttons"><button class="primary">保存</button><button id="cancelEdit" type="button" class="secondary hidden">編集取消</button></div>
+          </form>
+          <h3>選択日の項目</h3>
+          <div id="dayItems" class="list"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="todo" class="view">
+      <div class="page-title"><div><span class="eyebrow">TODO</span><h1>TODOリスト</h1><p>期限を設定するとカレンダーにも自動表示します。</p></div><img src="assets/orbia-cat-small.png" alt=""></div>
+      <div class="two">
+        <section class="panel">
+          <div class="panel-head"><div><span class="eyebrow">NEW TASK</span><h2>TODO追加</h2></div></div>
+          <form id="todoForm" class="form">
+            <label>担当<select id="todoRole"><option value="planning">経営企画係長</option><option value="billing">算定病歴係長</option></select></label>
+            <label>業務名<input id="todoTitle" required></label>
+            <label>期限<input id="todoDue" type="date" value="2026-09-10"></label>
+            <label>優先度<select id="todoPriority"><option>高</option><option selected>中</option><option>低</option></select></label>
+            <label>分類<input id="todoKind" placeholder="例：施設基準・院外報告"></label>
+            <label>現在の状況<textarea id="todoProgress" rows="3" placeholder="どこまで進んでいるか"></textarea></label>
+            <label>次にすること<textarea id="todoNext" rows="2"></textarea></label>
+            <button class="primary mint">＋ TODO追加</button>
+          </form>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><div><span class="eyebrow">PRIORITY LIST</span><h2>一覧</h2></div><select id="todoFilter"><option value="all">すべて</option><option value="planning">経営企画</option><option value="billing">算定病歴</option><option value="high">優先度 高</option><option value="open">未完了</option></select></div>
+          <div id="todoList" class="list"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="work" class="view">
+      <div class="page-title"><div><span class="eyebrow">WORK</span><h1>業務</h1><p id="workSubtitle">役割を選ぶと、その席の業務が表示されます。</p></div><img src="assets/orbia-cat-small.png" alt=""></div>
+      <div class="segmented"><button class="roleSwitch active" data-role="planning">経営企画係長</button><button class="roleSwitch" data-role="billing">算定病歴係長</button></div>
+      <div id="workContent"></div>
+    </section>
+
+    <section id="handover" class="view">
+      <div class="page-title"><div><span class="eyebrow">HANDOVER</span><h1>引継ぎ・業務標準化</h1><p>急な休みでも、今の状況・次にすること・やり方をすぐ確認できます。</p></div><img src="assets/orbia-cat-small.png" alt=""></div>
+      <div class="handover-tabs">
+        <button class="hTab active" data-h="emergency">🚨 緊急引継ぎ</button>
+        <button class="hTab" data-h="progress">📋 現在進捗</button>
+        <button class="hTab" data-h="manual">📖 業務マニュアル</button>
+        <button class="hTab" data-h="document">📄 引継書</button>
+      </div>
+      <div id="handoverContent"></div>
+    </section>
+
+    <section id="inquiry" class="view">
+      <div class="page-title"><div><span class="eyebrow">KNOWLEDGE</span><h1>照会・調査</h1><p>調べたこと・照会したこと・回答・今後の取扱いを蓄積して検索できます。</p></div><img src="assets/orbia-cat-small.png" alt=""></div>
+      <section class="panel search-panel">
+        <input id="inquirySearch" class="big-search" placeholder="🔍 例：深夜加算、様式2、麻酔管理料">
+        <div id="inquiryResults" class="list"></div>
       </section>
+      <div class="two inquiry-layout">
+        <section class="panel">
+          <div class="panel-head"><div><span class="eyebrow">NEW KNOWLEDGE</span><h2>照会・調査を登録</h2></div></div>
+          <form id="inquiryForm" class="form">
+            <label>担当<select id="inqRole"><option value="planning">経営企画係長</option><option value="billing">算定病歴係長</option></select></label>
+            <label>件名<input id="inqTitle" required></label>
+            <label>分類<input id="inqKind" placeholder="例：診療報酬、報告様式"></label>
+            <label>疑問・経緯<textarea id="inqQuestion" rows="3"></textarea></label>
+            <label>照会先・回答者<input id="inqPerson" placeholder="例：本部 医事担当 ○○様"></label>
+            <label>回答<textarea id="inqAnswer" rows="4"></textarea></label>
+            <label>今後の取扱い<textarea id="inqFuture" rows="3"></textarea></label>
+            <label>関連業務<input id="inqRelated"></label>
+            <button class="primary lavender">登録</button>
+          </form>
+        </section>
+        <section class="panel"><div class="panel-head"><div><span class="eyebrow">RECENT</span><h2>最近の記録</h2></div></div><div id="recentInquiry" class="list"></div></section>
+      </div>
+    </section>
 
-      <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    </main>
+    <section id="settings" class="view">
+      <div class="page-title"><div><span class="eyebrow">SETTINGS</span><h1>設定</h1><p>メール受付やデータ管理の試作設定。</p></div><img src="assets/orbia-cat-small.png" alt=""></div>
+      <div class="two">
+        <section class="panel">
+          <h2>📨 外部連絡受付</h2>
+          <div class="form">
+            <label>登録済み個人アドレス<input id="externalEmail" type="email" placeholder="example@gmail.com"></label>
+            <label class="inline"><input id="allowLeave" type="checkbox" checked> 「今日休む」連絡を許可</label>
+            <label class="inline"><input id="allowHandover" type="checkbox" checked> 引継事項の追加を許可</label>
+            <label class="inline"><input id="allowTodo" type="checkbox" checked> TODO追加を許可</label>
+            <button id="saveSettings" class="primary">設定保存</button>
+          </div>
+          <div class="note">GitHub版では設定保存のみ。本番時は職場Outlook → Power Automate → SharePoint/Orbiaで反映する想定です。</div>
+        </section>
+        <section class="panel">
+          <h2>💾 データ管理</h2>
+          <p>このβ版はブラウザのlocalStorageへ保存します。</p>
+          <div class="buttons"><button id="exportBtn" class="secondary">JSONバックアップ</button><label class="secondary filelabel">JSON復元<input id="restoreFile" type="file" accept=".json" hidden></label><button id="resetBtn" class="danger">初期化</button></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="help" class="view">
+      <div class="page-title"><div><span class="eyebrow">HELP</span><h1>使い方</h1><p>Orbiaを毎日の業務記録として使うための簡単ガイド。</p></div><img src="assets/orbia-cat-small.png" alt=""></div>
+      <div class="help-grid">
+        <details open><summary>🐱 まず毎日何を更新する？</summary><p>予定、TODOの進捗、次にすることを更新します。新しく分かったことは「照会・調査」へ残します。</p></details>
+        <details><summary>🚨 急に休むときは？</summary><p>TODOの現在状況と次作業を更新しておけば「緊急引継ぎ」に自動表示されます。将来は個人メールから休暇・引継ぎを登録できるようにします。</p></details>
+        <details><summary>📅 TODOとカレンダーの関係は？</summary><p>期限のある未完了TODOは、カレンダーに「TODO期限」として自動表示されます。</p></details>
+        <details><summary>🔎 過去に聞いたことを探すには？</summary><p>「照会・調査」でキーワード検索します。0件なら、まだOrbiaに記録されていない内容です。</p></details>
+        <details><summary>📄 資料作成に失敗したら？</summary><p>再実行のほか、「デスクトップで作成」を選び、完成後に資料を登録する運用を想定しています。</p></details>
+        <details><summary>🔄 後任は何を見ればいい？</summary><p>「引継ぎ」→「現在進捗」「業務マニュアル」「引継書」の順で確認すると、今の状況とやり方を把握できます。</p></details>
+      </div>
+    </section>
+
+    <footer>Orbia v0.3 β ｜ GitHub prototype ｜ 実データ・個人情報は登録しないでください 🐾</footer>
+    <div id="toast" class="toast"></div>
+  </main>
+</div>
+
+<div id="modal" class="modal hidden" aria-hidden="true">
+  <div class="modal-card">
+    <button id="modalClose" class="modal-close">×</button>
+    <div id="modalBody"></div>
   </div>
-
-  <script src="app.js"></script>
+</div>
+<script src="app.js"></script>
 </body>
 </html>

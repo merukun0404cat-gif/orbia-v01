@@ -1,15 +1,7 @@
-# OS
-.DS_Store
-Thumbs.db
-
-# Local secrets / env
 .env
 .env.*
-*.secret
 secrets/
-private-data/
-
-# Real hospital data (never commit)
 real-data/
 patient-data/
 internal-data/
+private/

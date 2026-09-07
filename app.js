@@ -1,304 +1,138 @@
 (() => {
-  const $ = (s, root=document) => root.querySelector(s);
-  const $$ = (s, root=document) => [...root.querySelectorAll(s)];
-
-  const DEFAULT = {
-    role: "billing",
-    mail: {
-      senderName: "算定病歴係長",
-      signature: "独立行政法人 国立病院機構\n神戸医療センター\n算定病歴係長"
-    },
-    events: [
-      {id:1,date:"2026-09-07",title:"院長報告資料確認",start:"10:00",end:"11:00",category:"資料作成",memo:""},
-      {id:2,date:"2026-09-07",title:"施設基準 打合せ",start:"15:00",end:"16:00",category:"会議",memo:""},
-      {id:3,date:"2026-09-10",title:"月次実績締切",start:"09:00",end:"09:30",category:"提出・締切",memo:""}
-    ],
-    todos: [
-      {id:11,title:"本部提出資料の最終確認",due:"2026-09-07",priority:"高",category:"本部報告",done:false},
-      {id:12,title:"看護必要度 3か月平均確認",due:"2026-09-08",priority:"高",category:"施設基準",done:false},
-      {id:13,title:"ICU月次集計",due:"2026-09-10",priority:"中",category:"月次集計",done:true},
-      {id:14,title:"過年度資料の整理",due:"2026-09-18",priority:"低",category:"その他",done:false}
-    ],
-    mailLogs: []
-  };
-
-  function deepClone(obj){ return JSON.parse(JSON.stringify(obj)); }
-  function loadState(){
-    try {
-      const raw = localStorage.getItem("orbia-v01");
-      return raw ? {...deepClone(DEFAULT), ...JSON.parse(raw)} : deepClone(DEFAULT);
-    } catch { return deepClone(DEFAULT); }
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const WORK={
+ planning:{
+  label:"経営企画係長",
+  categories:{
+   "院内報告":["検査課","薬剤部"],
+   "院外報告":["評価会資料報告","個別経営改善計画の進捗状況","経営改善報告","様式2","管理会計報告1","管理会計報告2"],
+   "委員会":["クリニカルパス委員会","摂食嚥下サポート関係者会議"],
+   "会議":["部長・医長会","評価会事前レク","毎週火曜日ミーティング"],
+   "年次業務":["院長ミーティング","病院年報"],
+   "その他業務":["病院機能評価"]
   }
-  let state = loadState();
-  const save = () => localStorage.setItem("orbia-v01", JSON.stringify(state));
-
-  let selectedDate = "2026-09-07";
-  let viewYear = 2026, viewMonth = 8;
-
-  function toast(msg){
-    const el = $("#toast");
-    el.textContent = "🐾 " + msg;
-    el.classList.add("show");
-    clearTimeout(toast.t);
-    toast.t = setTimeout(() => el.classList.remove("show"), 2100);
+ },
+ billing:{
+  label:"算定病歴係長",
+  categories:{
+   "報告":["病棟薬剤業務実施加算","給与係長へベースアップ","深夜加算の報告"],
+   "委員会":["診療報酬委員会"],
+   "検証":["施設基準検証（毎月）","人員配置（半年）","循環器検証（毎月）"],
+   "算定チェック":["栄養（週2・月初）","がん患者","償還材料","特定薬剤","マススクリーニング","麻酔管理料"],
+   "大型業務":["診療報酬改定","施設基準の届出"]
   }
-
-  function showView(id){
-    $$(".view").forEach(v => v.classList.toggle("active", v.id === id));
-    $$(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === id));
-    window.scrollTo({top:0, behavior:"smooth"});
-  }
-
-  $$(".nav-item").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
-  $$("[data-jump]").forEach(b => b.addEventListener("click", () => showView(b.dataset.jump)));
-
-  function roleName(){ return state.role === "billing" ? "算定病歴係長" : "経営企画係長"; }
-  function syncRole(){
-    $("#roleMode").value = state.role;
-    $("#welcomeRole").textContent = roleName();
-    $("#senderName").value = state.mail.senderName || roleName();
-    $("#signature").value = state.mail.signature || "";
-    $("#todayText").textContent = state.role === "billing"
-      ? "施設基準・月次集計・提出期限をまとめて確認できます。"
-      : "経営実績・院長資料・会議予定をまとめて確認できます。";
-  }
-  $("#roleMode").addEventListener("change", e => {
-    state.role = e.target.value;
-    if (!state.mail.senderName || ["算定病歴係長","経営企画係長"].includes(state.mail.senderName)) state.mail.senderName = roleName();
-    save(); syncRole(); renderHome(); toast(roleName() + "モードに切り替えました");
-  });
-
-  function todayISO(){ return "2026-09-07"; }
-  function priorityRank(p){ return p === "高" ? 0 : p === "中" ? 1 : 2; }
-  function pClass(p){ return p === "高" ? "p-high" : p === "中" ? "p-mid" : "p-low"; }
-
-  function renderHome(){
-    const today = todayISO();
-    const todayEvents = state.events.filter(e => e.date === today).length;
-    const open = state.todos.filter(t => !t.done);
-    const high = open.filter(t => t.priority === "高").length;
-    const done = state.todos.filter(t => t.done).length;
-    $("#statEvents").textContent = todayEvents;
-    $("#statHigh").textContent = high;
-    $("#statDone").textContent = Math.round(done / Math.max(state.todos.length,1) * 100) + "%";
-
-    const list = open.slice().sort((a,b) => priorityRank(a.priority)-priorityRank(b.priority) || a.due.localeCompare(b.due)).slice(0,5);
-    $("#homePriority").innerHTML = list.length ? list.map(t => `
-      <div class="stack-item ${pClass(t.priority)}">
-        <b>${escapeHtml(t.title)}</b>
-        <small>${escapeHtml(t.category)} ・ 期限 ${fmtDate(t.due)} ・ 優先度 ${t.priority}</small>
-      </div>`).join("") : `<div class="stack-item">未完了のTODOはありません 🎉</div>`;
-  }
-
-  function fmtDate(iso){
-    const [y,m,d] = iso.split("-").map(Number);
-    return `${m}/${d}`;
-  }
-  function iso(y,m,d){ return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`; }
-  function escapeHtml(s=""){
-    return String(s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-  }
-
-  function renderCalendar(){
-    $("#monthLabel").textContent = `${viewYear}年 ${viewMonth+1}月`;
-    const grid = $("#calendarGrid");
-    grid.innerHTML = "";
-    const first = new Date(Date.UTC(viewYear, viewMonth, 1)).getUTCDay();
-    const max = new Date(Date.UTC(viewYear, viewMonth+1, 0)).getUTCDate();
-    for(let i=0;i<first;i++) grid.appendChild(document.createElement("div"));
-    for(let d=1; d<=max; d++){
-      const date = iso(viewYear, viewMonth, d);
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "day-cell";
-      if(date === selectedDate) btn.classList.add("selected");
-      if(date === todayISO()) btn.classList.add("today");
-      const events = state.events.filter(e => e.date === date);
-      btn.innerHTML = `<span class="day-number">${d}</span>` + events.slice(0,2).map(e => `<span class="event-dot">● ${escapeHtml(e.title)}</span>`).join("");
-      btn.addEventListener("click", () => { selectedDate = date; renderCalendar(); renderDayEvents(); });
-      grid.appendChild(btn);
-    }
-    renderDayEvents();
-  }
-  function renderDayEvents(){
-    $("#selectedDateText").textContent = selectedDate.replace(/^(\d{4})-(\d{2})-(\d{2})$/, (_,y,m,d)=>`${Number(m)}月${Number(d)}日`);
-    const arr = state.events.filter(e => e.date === selectedDate).sort((a,b)=>a.start.localeCompare(b.start));
-    $("#dayEvents").innerHTML = arr.length ? arr.map(e => `
-      <div class="stack-item">
-        <b>${escapeHtml(e.start)} ${escapeHtml(e.title)}</b>
-        <small>${escapeHtml(e.category)} ・ ${escapeHtml(e.start)}〜${escapeHtml(e.end)}</small>
-      </div>`).join("") : `<div class="stack-item"><small>予定はありません。</small></div>`;
-  }
-  $("#prevMonth").addEventListener("click",()=>{ if(--viewMonth<0){viewMonth=11;viewYear--;} renderCalendar(); });
-  $("#nextMonth").addEventListener("click",()=>{ if(++viewMonth>11){viewMonth=0;viewYear++;} renderCalendar(); });
-  $("#eventForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const title = $("#eventTitle").value.trim();
-    if(!title) return;
-    state.events.push({
-      id:Date.now(), date:selectedDate, title,
-      start:$("#eventStart").value || "09:00",
-      end:$("#eventEnd").value || "10:00",
-      category:$("#eventCategory").value,
-      memo:$("#eventMemo").value.trim()
-    });
-    save(); e.target.reset(); $("#eventStart").value="09:00"; $("#eventEnd").value="10:00";
-    renderCalendar(); renderHome(); toast("予定を登録しました");
-  });
-
-  function renderTodos(){
-    const filter = $("#todoFilter").value;
-    let arr = state.todos.slice().sort((a,b)=> Number(a.done)-Number(b.done) || priorityRank(a.priority)-priorityRank(b.priority) || a.due.localeCompare(b.due));
-    if(filter === "open") arr = arr.filter(t=>!t.done);
-    else if(["高","中","低"].includes(filter)) arr = arr.filter(t=>t.priority===filter);
-    const wrap = $("#todoList");
-    wrap.innerHTML = "";
-    arr.forEach(t => {
-      const row = document.createElement("div");
-      row.className = "todo-row " + (t.done ? "done" : "");
-      const cb = document.createElement("input");
-      cb.type = "checkbox"; cb.checked = !!t.done; cb.setAttribute("aria-label",`${t.title}を完了`);
-      cb.addEventListener("change",()=>{ t.done=cb.checked; save(); renderTodos(); renderHome(); });
-      const body = document.createElement("div");
-      body.innerHTML = `<div class="todo-title"><b>${escapeHtml(t.title)}</b></div><div class="todo-meta">${escapeHtml(t.category)} ・ 期限 ${fmtDate(t.due)}</div>`;
-      const badge = document.createElement("span");
-      badge.className = `priority-badge ${pClass(t.priority)}`; badge.textContent = t.priority;
-      row.append(cb,body,badge); wrap.appendChild(row);
-    });
-  }
-  $("#todoFilter").addEventListener("change",renderTodos);
-  $("#todoForm").addEventListener("submit", e => {
-    e.preventDefault();
-    const title = $("#todoTitle").value.trim();
-    if(!title) return;
-    state.todos.push({
-      id:Date.now(), title, due:$("#todoDue").value || todayISO(),
-      priority:$("#todoPriority").value, category:$("#todoCategory").value, done:false
-    });
-    save(); e.target.reset(); renderTodos(); renderHome(); toast("TODOを追加しました");
-  });
-
-  const MAIL_TEMPLATES = {
-    request:{subject:"【依頼】資料ご提出のお願い", body:"お世話になっております。\n\n標記の件につきまして、資料のご提出をお願いいたします。\nご確認のほどよろしくお願いいたします。"},
-    remind:{subject:"【ご確認】提出期限のご案内", body:"お世話になっております。\n\n標記の件につきまして、提出期限が近づいておりますのでご案内いたします。\nご対応のほどよろしくお願いいたします。"},
-    overdue:{subject:"【再依頼】提出期限超過のご連絡", body:"お世話になっております。\n\n標記の件につきまして、提出期限を過ぎておりますため、再度ご連絡いたしました。\nご対応のほどよろしくお願いいたします。"},
-    thanks:{subject:"【御礼】資料ご提出ありがとうございました", body:"お世話になっております。\n\n標記の件につきまして、ご提出いただきありがとうございました。\n確かに受領いたしました。"}
-  };
-  function fillMailTemplate(){
-    const t = MAIL_TEMPLATES[$("#mailTemplate").value];
-    $("#mailSubject").value = t.subject;
-    $("#mailBody").value = `${t.body}\n\n${state.mail.signature || ""}`;
-  }
-  $("#mailTemplate").addEventListener("change", fillMailTemplate);
-  $("#mailSettingForm").addEventListener("submit", e => {
-    e.preventDefault();
-    state.mail.senderName = $("#senderName").value.trim();
-    state.mail.signature = $("#signature").value;
-    save(); fillMailTemplate(); toast("メール設定を保存しました");
-  });
-  $("#makeMailDraft").addEventListener("click",()=>{
-    const to = $("#mailTo").value.trim();
-    const subject = $("#mailSubject").value;
-    const body = $("#mailBody").value;
-    const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = url;
-  });
-  $("#saveMailLog").addEventListener("click",()=>{
-    const to = $("#mailTo").value.trim();
-    if(!to){ toast("宛先を入力してください"); return; }
-    state.mailLogs.unshift({id:Date.now(),to,subject:$("#mailSubject").value,date:new Date().toLocaleString("ja-JP")});
-    save(); renderMailLogs(); toast("送信履歴に登録しました");
-  });
-  function renderMailLogs(){
-    const logs = state.mailLogs.slice(0,5);
-    $("#mailLog").innerHTML = logs.length ? `<h3>最近の履歴</h3>` + logs.map(x=>`<div class="stack-item"><b>${escapeHtml(x.subject)}</b><small>${escapeHtml(x.to)} ・ ${escapeHtml(x.date)}</small></div>`).join("") : "";
-  }
-
-  const trend = [
-    {m:"4月",v:74},{m:"5月",v:78},{m:"6月",v:80},{m:"7月",v:81.2},{m:"8月",v:82.4}
-  ];
-  function renderChart(){
-    const max = 100;
-    $("#barChart").innerHTML = trend.map(x=>`<div class="bar-item"><div class="bar" style="height:${Math.max(12,x.v/max*100)}%"></div><small>${x.m}<br>${x.v}%</small></div>`).join("");
-  }
-  $("#refreshDashboard").addEventListener("click",()=> toast($("#dashboardMonth").value + " の集計結果を表示しました"));
-
-  function runSimulation(){
-    const curHits = Number($("#currentHits").textContent);
-    const curTotal = Number($("#currentTotal").textContent);
-    const addHits = Number($("#simAddHits").value) || 0;
-    const addTotal = Number($("#simAddTotal").value) || 0;
-    const threshold = Number($("#simThreshold").value) || 0;
-    const hits = Math.max(0, curHits + addHits);
-    const total = Math.max(1, curTotal + addTotal);
-    const rate = Math.min(100, hits / total * 100);
-    const current = curHits / curTotal * 100;
-    $("#simRate").textContent = rate.toFixed(1);
-    const j = $("#simJudgement");
-    const ok = rate >= threshold;
-    j.textContent = ok ? "基準達成" : "基準未達";
-    j.className = "judgement " + (ok ? "ok" : "ng");
-    const diff = rate-current;
-    $("#simDiff").textContent = `現在より ${diff>=0?"+":""}${diff.toFixed(1)}pt`;
-  }
-  $("#runSimulation").addEventListener("click",runSimulation);
-
-  $("#csvFile").addEventListener("change", async e => {
-    const file = e.target.files?.[0];
-    if(!file) return;
-    const text = await file.text();
-    const lines = text.replace(/\r/g,"").split("\n").filter(Boolean).slice(0,11);
-    const rows = lines.map(parseCSVLine);
-    if(!rows.length) return;
-    const head = rows[0], body = rows.slice(1);
-    $("#csvPreview thead").innerHTML = `<tr>${head.map(x=>`<th>${escapeHtml(x)}</th>`).join("")}</tr>`;
-    $("#csvPreview tbody").innerHTML = body.map(r=>`<tr>${head.map((_,i)=>`<td>${escapeHtml(r[i]??"")}</td>`).join("")}</tr>`).join("");
-    $("#csvMeta").textContent = `${file.name} ・ プレビュー ${body.length}行`;
-    toast("CSVを読み込みました");
-  });
-  function parseCSVLine(line){
-    const out=[]; let cur="", q=false;
-    for(let i=0;i<line.length;i++){
-      const c=line[i];
-      if(c === '"'){
-        if(q && line[i+1] === '"'){cur+='"';i++;}
-        else q=!q;
-      } else if(c === "," && !q){ out.push(cur); cur=""; }
-      else cur+=c;
-    }
-    out.push(cur); return out;
-  }
-
-  $$("[data-demo]").forEach(b=>b.addEventListener("click",()=>toast(`${b.dataset.demo}は次版で詳細機能を追加します`)));
-
-  function download(name, content, type="application/json"){
-    const blob = new Blob([content], {type});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = name; a.click();
-    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-  }
-  function exportBackup(){
-    download(`orbia-backup-${todayISO()}.json`, JSON.stringify(state,null,2));
-    toast("バックアップを書き出しました");
-  }
-  $("#backupBtn").addEventListener("click", exportBackup);
-  $("#exportBtn").addEventListener("click", exportBackup);
-  $("#restoreFile").addEventListener("change", async e => {
-    const f=e.target.files?.[0]; if(!f) return;
-    try{
-      const obj=JSON.parse(await f.text());
-      state={...deepClone(DEFAULT),...obj}; save(); renderAll(); toast("バックアップを復元しました");
-    }catch{ toast("JSONを読み込めませんでした"); }
-  });
-  $("#resetBtn").addEventListener("click",()=>{
-    if(confirm("Orbiaの試作データを初期状態に戻しますか？")){
-      state=deepClone(DEFAULT); save(); renderAll(); toast("初期状態へ戻しました");
-    }
-  });
-
-  function renderAll(){
-    syncRole(); renderHome(); renderCalendar(); renderTodos(); renderMailLogs(); renderChart(); fillMailTemplate(); runSimulation();
-  }
-  renderAll();
+ }
+};
+const D={
+ role:"all",
+ events:[
+  {id:1,role:"planning",date:"2026-09-08",title:"毎週火曜日ミーティング",start:"09:00",end:"09:30",kind:"会議",memo:"",mail:{enabled:false}},
+  {id:2,role:"planning",date:"2026-09-10",title:"評価会資料報告",start:"13:00",end:"14:00",kind:"報告",memo:"院長確認後に提出",mail:{enabled:true,to:"",timing:"3日前",template:"資料提出のお願い"}},
+  {id:3,role:"billing",date:"2026-09-09",title:"施設基準検証",start:"10:00",end:"11:30",kind:"検証",memo:"",mail:{enabled:false}},
+  {id:4,role:"billing",date:"2026-09-11",title:"病棟薬剤業務実施加算 報告",start:"15:00",end:"16:00",kind:"報告",memo:"",mail:{enabled:false}}
+ ],
+ todos:[
+  {id:11,role:"planning",title:"評価会資料：院長確認",due:"2026-09-10",priority:"高",kind:"院外報告",progress:"データ集計済み",next:"院長確認後、本部へ提出",done:false},
+  {id:12,role:"billing",title:"施設基準検証：医師配置確認",due:"2026-09-09",priority:"高",kind:"施設基準",progress:"看護配置まで確認済み",next:"医師勤務実績を確認",done:false},
+  {id:13,role:"planning",title:"薬剤部 院内報告",due:"2026-09-15",priority:"中",kind:"院内報告",progress:"データ待ち",next:"薬剤部回答後に集計",done:false},
+  {id:14,role:"billing",title:"栄養 算定チェック",due:"2026-09-08",priority:"中",kind:"算定チェック",progress:"今週1回目完了",next:"金曜日に2回目確認",done:false}
+ ],
+ manuals:[
+  {id:1,role:"billing",title:"施設基準検証",summary:"毎月、届出済施設基準について実績・人員配置等を確認する。",steps:["対象月の実績データを取得","人員配置データを更新","各基準値と照合","要注意・未達項目を確認","必要に応じて届出変更を検討"],files:"SharePoint ＞ 算定病歴 ＞ 施設基準",contact:"必要に応じて担当部署へ照会"},
+  {id:2,role:"planning",title:"評価会資料報告",summary:"評価会で使用する病院経営・統計資料を作成し報告する。",steps:["必要データを取り込む","集計結果を確認","登録様式で資料作成","プレビュー確認","院長確認後に提出"],files:"SharePoint ＞ 経営企画 ＞ 評価会",contact:"経営企画担当"}
+ ],
+ inquiries:[
+  {id:1,role:"billing",title:"深夜加算の取扱い",kind:"診療報酬",question:"深夜帯の対象範囲について確認が必要となった。",person:"本部担当者（サンプル）",answer:"サンプル回答：正式な院内記録に置き換えてください。",future:"次回以降は確認済みの判定ルールで集計する。",related:"深夜加算の報告",date:"2026-09-01"},
+  {id:2,role:"planning",title:"様式2の提出データ範囲",kind:"院外報告",question:"どの期間のデータを使用するか確認。",person:"提出先担当者（サンプル）",answer:"サンプル回答：実際の回答内容に置き換えてください。",future:"次回報告時の業務マニュアルへ反映。",related:"様式2",date:"2026-09-03"}
+ ],
+ external:{email:"",allowLeave:true,allowHandover:true,allowTodo:true}
+};
+const clone=x=>JSON.parse(JSON.stringify(x)); let state=(()=>{try{return {...clone(D),...JSON.parse(localStorage.getItem("orbia-v03")||"{}")}}catch{return clone(D)}})();
+const save=()=>localStorage.setItem("orbia-v03",JSON.stringify(state));
+let viewY=2026,viewM=8,selected="2026-09-07",workRole="planning",hTab="emergency";
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(t){const e=$("#toast");e.textContent="🐾 "+t;e.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("show"),1900)}
+function show(v){$$(".view").forEach(x=>x.classList.toggle("active",x.id===v));$$(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));window.scrollTo({top:0,behavior:"smooth"})}
+$$(".nav").forEach(b=>b.addEventListener("click",()=>show(b.dataset.view)));$$("[data-jump]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.jump)));
+function rLabel(r){return r==="planning"?"経営企画":"算定病歴"} function tag(r){return r==="planning"?"tag-planning":"tag-billing"} function pclass(p){return p==="高"?"p-high":p==="中"?"p-mid":"p-low"} function prank(p){return p==="高"?0:p==="中"?1:2}
+$("#roleMode").addEventListener("change",e=>{state.role=e.target.value;save();renderHome();toast("表示を切り替えました")});
+$$(".role-card").forEach(b=>b.addEventListener("click",()=>{$("#roleMode").value=b.dataset.role;state.role=b.dataset.role;save();renderHome();show("home")}));
+function renderHome(){
+ $("#roleMode").value=state.role||"all";
+ const ev=state.events.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start)).slice(0,8);
+ $("#homeSchedule").innerHTML=ev.map(x=>`<div class="item"><div class="row"><b>${x.date.slice(5).replace("-","/")} ${esc(x.start)} ${esc(x.title)}</b><span class="role-tag ${tag(x.role)}">${rLabel(x.role)}</span></div><small>${esc(x.kind)}${x.mail?.enabled?" ・ ✉メール設定あり":""}</small></div>`).join("");
+ const td=state.todos.filter(x=>!x.done).slice().sort((a,b)=>prank(a.priority)-prank(b.priority)||a.due.localeCompare(b.due)).slice(0,8);
+ $("#homeTodo").innerHTML=td.map(x=>`<div class="item"><div class="row"><b>${esc(x.title)}</b><span class="status ${pclass(x.priority)}">${x.priority}</span></div><small>${rLabel(x.role)} ・ 期限 ${x.due} ・ ${esc(x.progress||"進捗未登録")}</small></div>`).join("");
+ renderRoleDashboard();
+}
+function renderRoleDashboard(){
+ const box=$("#roleDashboard"); const role=state.role;
+ if(role==="planning"){
+  box.innerHTML=`<div class="panel-head"><div><span class="eyebrow">PLANNING DASHBOARD</span><h2>経営企画係長｜病院経営・統計</h2></div><button class="linkbtn" data-open-work="planning">業務を見る</button></div>
+  <div class="dash-cards"><div class="dash-card blue"><small>診療収益</small><b>¥512M</b><span>ダミー</span></div><div class="dash-card mintbg"><small>病床利用率</small><b>82.4%</b><span>前月比 +1.2pt</span></div><div class="dash-card lavbg"><small>新入院患者</small><b>438</b><span>人</span></div><div class="dash-card cream"><small>救急応需率</small><b>78.6%</b><span>実績</span></div></div><div class="note">数値はすべてUI確認用ダミーデータ。今後、院内Excelの集計結果へ置換します。</div>`;
+ }else if(role==="billing"){
+  box.innerHTML=`<div class="panel-head"><div><span class="eyebrow">BILLING DASHBOARD</span><h2>算定病歴係長｜施設基準・届出管理</h2></div><button class="linkbtn" data-open-work="billing">業務を見る</button></div>
+  <div class="dash-cards"><div class="dash-card mintbg"><small>問題なし</small><b>32</b><span>項目</span></div><div class="dash-card cream"><small>要注意</small><b>5</b><span>項目</span></div><div class="dash-card pink"><small>対応必要</small><b>2</b><span>項目</span></div><div class="dash-card lavbg"><small>上位基準候補</small><b>3</b><span>項目</span></div></div><div class="note">施設基準検証結果を登録すると、基準値との差・要注意・上位基準取得可能性を判定する想定です。</div>`;
+ }else{
+  box.innerHTML=`<div class="panel-head"><div><span class="eyebrow">ALL WORK</span><h2>Orbia全体</h2></div></div><p>上の「経営企画係長」「算定病歴係長」を選ぶと、それぞれのダッシュボードへ切り替わります。</p>`;
+ }
+ $$("[data-open-work]",box).forEach(b=>b.addEventListener("click",()=>{workRole=b.dataset.openWork;renderWork();show("work")}));
+}
+function iso(y,m,d){return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`}
+function calRoles(){return $$(".calFilter:checked").map(x=>x.value)}
+function renderCalendar(){
+ $("#monthLabel").textContent=`${viewY}年 ${viewM+1}月`;const g=$("#calendarGrid");g.innerHTML="";const first=new Date(Date.UTC(viewY,viewM,1)).getUTCDay(),max=new Date(Date.UTC(viewY,viewM+1,0)).getUTCDate(),roles=calRoles(),showTodo=$("#showTodoCal").checked;
+ for(let i=0;i<first;i++)g.appendChild(document.createElement("div"));
+ for(let d=1;d<=max;d++){let date=iso(viewY,viewM,d),b=document.createElement("button");b.type="button";b.className="day"+(date===selected?" sel":"")+(date==="2026-09-07"?" today":"");let ev=state.events.filter(x=>x.date===date&&roles.includes(x.role));let td=showTodo?state.todos.filter(x=>!x.done&&x.due===date&&roles.includes(x.role)):[];b.innerHTML=`<b>${d}</b>`+ev.slice(0,2).map(x=>`<span class="ev ${x.role}">● ${esc(x.title)}</span>`).join("")+td.slice(0,2).map(x=>`<span class="ev todo">■ TODO ${esc(x.title)}</span>`).join("");b.addEventListener("click",()=>{selected=date;clearEventForm();renderCalendar()});g.appendChild(b)}
+ const [y,m,d]=selected.split("-");$("#selectedDateText").textContent=`${Number(m)}月${Number(d)}日`;renderDayItems();
+}
+$$(".calFilter").forEach(x=>x.addEventListener("change",renderCalendar));$("#showTodoCal").addEventListener("change",renderCalendar);$("#prevMonth").addEventListener("click",()=>{if(--viewM<0){viewM=11;viewY--}renderCalendar()});$("#nextMonth").addEventListener("click",()=>{if(++viewM>11){viewM=0;viewY++}renderCalendar()});
+function renderDayItems(){
+ const roles=calRoles();let ev=state.events.filter(x=>x.date===selected&&roles.includes(x.role));let td=$("#showTodoCal").checked?state.todos.filter(x=>!x.done&&x.due===selected&&roles.includes(x.role)):[];
+ $("#dayItems").innerHTML=ev.map(x=>`<div class="item"><div class="row"><b>${esc(x.start)} ${esc(x.title)}</b><span class="role-tag ${tag(x.role)}">${rLabel(x.role)}</span></div><small>${esc(x.kind)}${x.mail?.enabled?` ・ ✉ ${esc(x.mail.timing)}`:""}</small><div class="buttons"><button class="secondary editEvent" data-id="${x.id}">変更</button><button class="danger deleteEvent" data-id="${x.id}">削除</button></div></div>`).join("")+td.map(x=>`<div class="item"><div class="row"><b>TODO期限｜${esc(x.title)}</b><span class="status ${pclass(x.priority)}">${x.priority}</span></div><small>${rLabel(x.role)} ・ ${esc(x.progress||"")}</small></div>`).join("") || '<div class="item">予定・TODOはありません。</div>';
+ $$(".editEvent",$("#dayItems")).forEach(b=>b.addEventListener("click",()=>editEvent(Number(b.dataset.id))));$$(".deleteEvent",$("#dayItems")).forEach(b=>b.addEventListener("click",()=>deleteEvent(Number(b.dataset.id))));
+}
+function editEvent(id){let x=state.events.find(e=>e.id===id);if(!x)return;$("#editingEventId").value=id;$("#eventFormTitle").textContent="予定を変更";$("#eventRole").value=x.role;$("#eventTitle").value=x.title;$("#eventStart").value=x.start;$("#eventEnd").value=x.end;$("#eventKind").value=x.kind;$("#eventMemo").value=x.memo||"";$("#eventMailEnabled").checked=!!x.mail?.enabled;$("#eventMailTo").value=x.mail?.to||"";$("#eventMailTiming").value=x.mail?.timing||"3日前";$("#eventMailTemplate").value=x.mail?.template||"資料提出のお願い";$("#cancelEdit").classList.remove("hidden")}
+function clearEventForm(){$("#editingEventId").value="";$("#eventFormTitle").textContent="予定を登録";$("#eventForm").reset();$("#eventStart").value="09:00";$("#eventEnd").value="10:00";$("#cancelEdit").classList.add("hidden")}
+$("#cancelEdit").addEventListener("click",clearEventForm);
+$("#eventForm").addEventListener("submit",e=>{e.preventDefault();let id=Number($("#editingEventId").value),obj={role:$("#eventRole").value,date:selected,title:$("#eventTitle").value.trim(),start:$("#eventStart").value,end:$("#eventEnd").value,kind:$("#eventKind").value,memo:$("#eventMemo").value,mail:{enabled:$("#eventMailEnabled").checked,to:$("#eventMailTo").value,timing:$("#eventMailTiming").value,template:$("#eventMailTemplate").value}};if(!obj.title)return;if(id){Object.assign(state.events.find(x=>x.id===id),obj)}else state.events.push({id:Date.now(),...obj});save();clearEventForm();renderAll();toast(id?"予定を変更しました":"予定を登録しました")});
+function deleteEvent(id){if(confirm("この予定を削除しますか？")){state.events=state.events.filter(x=>x.id!==id);save();renderAll();toast("予定を削除しました")}}
+function renderTodo(){
+ let f=$("#todoFilter").value,a=state.todos.slice().sort((a,b)=>Number(a.done)-Number(b.done)||prank(a.priority)-prank(b.priority)||a.due.localeCompare(b.due));if(f==="planning"||f==="billing")a=a.filter(x=>x.role===f);else if(f==="high")a=a.filter(x=>x.priority==="高");else if(f==="open")a=a.filter(x=>!x.done);
+ const box=$("#todoList");box.innerHTML="";a.forEach(x=>{let d=document.createElement("div");d.className="item";let cb=document.createElement("input");cb.type="checkbox";cb.checked=x.done;cb.addEventListener("change",()=>{x.done=cb.checked;save();renderAll()});let content=document.createElement("div");content.innerHTML=`<div class="row"><b>${esc(x.title)}</b><span class="status ${pclass(x.priority)}">${x.priority}</span></div><small>${rLabel(x.role)} ・ ${esc(x.kind)} ・ 期限 ${x.due}</small><small>進捗：${esc(x.progress||"未登録")} ／ 次：${esc(x.next||"未登録")}</small>`;d.prepend(cb);d.append(content);box.append(d)})}
+$("#todoFilter").addEventListener("change",renderTodo);$("#todoForm").addEventListener("submit",e=>{e.preventDefault();let t=$("#todoTitle").value.trim();if(!t)return;state.todos.push({id:Date.now(),role:$("#todoRole").value,title:t,due:$("#todoDue").value,priority:$("#todoPriority").value,kind:$("#todoKind").value,progress:$("#todoProgress").value,next:$("#todoNext").value,done:false});save();e.target.reset();renderAll();toast("TODOを追加しました。カレンダーにも反映されます")});
+$$(".roleSwitch").forEach(b=>b.addEventListener("click",()=>{workRole=b.dataset.role;renderWork()}));
+function renderWork(){
+ $$(".roleSwitch").forEach(b=>b.classList.toggle("active",b.dataset.role===workRole));let data=WORK[workRole],html='<div class="category-grid">';
+ for(const [cat,items] of Object.entries(data.categories)){html+=`<section class="category-card"><h3>${esc(cat)}</h3>${items.map(x=>`<button class="work-button" data-work="${esc(x)}" data-cat="${esc(cat)}"><span>${esc(x)}</span><span>›</span></button>`).join("")}</section>`}html+='</div>';$("#workContent").innerHTML=html;$$(".work-button").forEach(b=>b.addEventListener("click",()=>openWorkFlow(workRole,b.dataset.cat,b.dataset.work)));
+}
+function openWorkFlow(role,cat,name){
+ let isBilling=role==="billing";openModal(`<span class="eyebrow">${rLabel(role)} / ${esc(cat)}</span><h2>${esc(name)}</h2>${isBilling?billingWorkflow(name):planningWorkflow(name)}`);
+ $$("[data-action]",$("#modalBody")).forEach(b=>b.addEventListener("click",()=>workAction(b.dataset.action,name,role)));
+}
+function planningWorkflow(name){return `<div class="workflow"><div class="flow-step">📥<b>データ取込</b></div><div class="flow-step">📄<b>資料作成</b></div><div class="flow-step">👀<b>プレビュー</b></div><div class="flow-step">✅<b>保存・登録</b></div></div><div class="buttons"><button class="primary" data-action="import">データ取り込み</button><button class="primary" data-action="create">会議・報告資料作成</button><button class="secondary" data-action="manual">デスクトップで作成</button><button class="secondary" data-action="upload">あとで資料を登録</button></div><div id="workResult" class="preview-box">まだ処理していません。</div>`}
+function billingWorkflow(name){return `<div class="workflow"><div class="flow-step">📥<b>検証結果登録</b></div><div class="flow-step">⚠<b>要注意判定</b></div><div class="flow-step">⭐<b>上位基準候補</b></div><div class="flow-step">📅<b>届出予定</b></div></div><div class="buttons"><button class="primary" data-action="verify">検証結果を登録</button><button class="secondary" data-action="notice">届出予定を登録</button></div><div id="workResult" class="preview-box">検証結果を登録すると判定イメージを表示します。</div>`}
+function workAction(a,name,role){let r=$("#workResult");if(a==="import")r.innerHTML=`✅ 「${esc(name)}」用データを取り込む画面（β版ではダミー）。<br>本番ではSharePoint/Excelへ接続。`;if(a==="create")r.innerHTML=`<b>資料プレビュー</b><p>${esc(name)}｜2026年9月</p><div class="dash-cards"><div class="dash-card blue"><small>入院患者</small><b>1,284</b></div><div class="dash-card mintbg"><small>病床利用率</small><b>82.4%</b></div><div class="dash-card cream"><small>手術件数</small><b>312</b></div><div class="dash-card lavbg"><small>救急応需率</small><b>78.6%</b></div></div><div class="buttons"><button class="primary">ダウンロード（次版）</button><button class="secondary" data-action="errorDemo">エラー時を確認</button></div>`;if(a==="manual")r.innerHTML="🖥 デスクトップで作成中として記録しました。完成後「あとで資料を登録」から登録する想定です。";if(a==="upload")r.innerHTML="📎 完成済み資料を登録するアップロード画面を本番版で接続します。";if(a==="verify")r.innerHTML=`<b>検証結果（サンプル）</b><div class="item"><b>⚠ 要注意：基準値との差 0.7pt</b><small>3か月平均の推移を継続確認してください。</small></div><div class="item"><b>⭐ 上位基準取得の可能性あり</b><small>別項目で上位基準の条件に近づいています。</small></div><div class="note">β版ではサンプル判定。本番では施設基準マスタの条件式で判定します。</div>`;if(a==="notice"){state.events.push({id:Date.now(),role:"billing",date:"2026-09-30",title:name+" 届出確認",start:"09:00",end:"09:30",kind:"届出",memo:"",mail:{enabled:false}});save();renderAll();r.innerHTML="📅 9/30に届出確認予定を登録しました（サンプル）。"}if(a==="errorDemo")r.innerHTML=`<div class="error-box"><b>資料を作成できませんでした</b><p>原因：必要データが不足しています。</p><div class="buttons"><button class="primary">データを確認</button><button class="secondary">もう一度作成</button><button class="secondary">デスクトップで作成</button></div></div>`}
+function openModal(html){$("#modalBody").innerHTML=html;$("#modal").classList.remove("hidden");$("#modal").setAttribute("aria-hidden","false")}$("#modalClose").addEventListener("click",()=>$("#modal").classList.add("hidden"));$("#modal").addEventListener("click",e=>{if(e.target===$("#modal"))$("#modal").classList.add("hidden")});
+$$(".hTab").forEach(b=>b.addEventListener("click",()=>{hTab=b.dataset.h;renderHandover()}));
+function renderHandover(){
+ $$(".hTab").forEach(b=>b.classList.toggle("active",b.dataset.h===hTab));let box=$("#handoverContent");
+ if(hTab==="emergency"){let a=state.todos.filter(x=>!x.done).sort((a,b)=>a.due.localeCompare(b.due));box.innerHTML=`<section class="panel"><div class="panel-head"><div><span class="eyebrow">IF I AM ABSENT TODAY</span><h2>今すぐ必要な引継ぎ</h2></div></div><div class="list">${a.map(x=>`<div class="item urgent"><div class="row"><b>${esc(x.title)}</b><span class="role-tag ${tag(x.role)}">${rLabel(x.role)}</span></div><small>現在：${esc(x.progress||"未登録")}</small><small>次：${esc(x.next||"未登録")} ／ 期限 ${x.due}</small></div>`).join("")}</div></section>`}
+ if(hTab==="progress"){box.innerHTML=`<section class="panel"><h2>現在進捗</h2><table class="progress-table"><thead><tr><th>担当</th><th>業務</th><th>現在</th><th>次</th><th>期限</th></tr></thead><tbody>${state.todos.filter(x=>!x.done).map(x=>`<tr><td>${rLabel(x.role)}</td><td>${esc(x.title)}</td><td>${esc(x.progress||"未登録")}</td><td>${esc(x.next||"未登録")}</td><td>${x.due}</td></tr>`).join("")}</tbody></table></section>`}
+ if(hTab==="manual"){box.innerHTML=`<div class="handover-grid">${state.manuals.map(m=>`<section class="manual-card"><span class="role-tag ${tag(m.role)}">${rLabel(m.role)}</span><h3>${esc(m.title)}</h3><p>${esc(m.summary)}</p><ol>${m.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol><small>資料：${esc(m.files)}<br>照会先：${esc(m.contact)}</small></section>`).join("")}<section class="manual-card"><h3>＋ 新しい業務手順</h3><p>新規マニュアル登録フォームは次版で追加予定。</p></section></div>`}
+ if(hTab==="document"){box.innerHTML=`<section class="panel"><div class="panel-head"><div><span class="eyebrow">LIVE HANDOVER DOCUMENT</span><h2>最新引継書</h2></div><button id="printHand" class="secondary">印刷</button></div><p>未完了：${state.todos.filter(x=>!x.done).length}件　｜　照会記録：${state.inquiries.length}件　｜　マニュアル：${state.manuals.length}件</p>${state.todos.filter(x=>!x.done).map((x,i)=>`<div class="item"><b>${i+1}. ${esc(x.title)}</b><small>${rLabel(x.role)}｜現在：${esc(x.progress||"未登録")}｜次：${esc(x.next||"未登録")}｜期限：${x.due}</small></div>`).join("")}</section>`;$("#printHand")?.addEventListener("click",()=>window.print())}
+}
+$("#inquirySearch").addEventListener("input",renderInquiry);
+function renderInquiry(){
+ let q=$("#inquirySearch").value.trim().toLowerCase(),a=q?state.inquiries.filter(x=>Object.values(x).join(" ").toLowerCase().includes(q)):[];let results=$("#inquiryResults");if(q&&!a.length)results.innerHTML=`<div class="empty-search"><img src="assets/orbia-cat-small.png"><b>Orbiaにはまだこの件の記録がないにゃ</b><p>新しい照会・調査として登録してください。</p></div>`;else results.innerHTML=a.map(k=>knowledgeHtml(k)).join("");
+ $("#recentInquiry").innerHTML=state.inquiries.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6).map(k=>knowledgeHtml(k)).join("")
+}
+function knowledgeHtml(k){return `<div class="item knowledge-card"><div class="row"><b>${esc(k.title)}</b><span class="role-tag ${tag(k.role)}">${rLabel(k.role)}</span></div><small>${esc(k.kind)} ・ ${esc(k.person)} ・ ${k.date}</small><div class="answer"><b>回答</b> ${esc(k.answer)}</div><small>今後：${esc(k.future)} ／ 関連：${esc(k.related)}</small></div>`}
+$("#inquiryForm").addEventListener("submit",e=>{e.preventDefault();let t=$("#inqTitle").value.trim();if(!t)return;state.inquiries.unshift({id:Date.now(),role:$("#inqRole").value,title:t,kind:$("#inqKind").value,question:$("#inqQuestion").value,person:$("#inqPerson").value,answer:$("#inqAnswer").value,future:$("#inqFuture").value,related:$("#inqRelated").value,date:"2026-09-07"});save();e.target.reset();renderInquiry();toast("照会・調査を登録しました")});
+$("#saveSettings").addEventListener("click",()=>{state.external={email:$("#externalEmail").value,allowLeave:$("#allowLeave").checked,allowHandover:$("#allowHandover").checked,allowTodo:$("#allowTodo").checked};save();toast("設定を保存しました")});
+function loadSettings(){let x=state.external||{};$("#externalEmail").value=x.email||"";$("#allowLeave").checked=x.allowLeave!==false;$("#allowHandover").checked=x.allowHandover!==false;$("#allowTodo").checked=x.allowTodo!==false}
+function download(name,text){let b=new Blob([text],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function backup(){download("orbia-v0.3-backup.json",JSON.stringify(state,null,2));toast("バックアップを書き出しました")}$("#backupTop").addEventListener("click",backup);$("#exportBtn").addEventListener("click",backup);$("#restoreFile").addEventListener("change",async e=>{try{state={...clone(D),...JSON.parse(await e.target.files[0].text())};save();renderAll();toast("復元しました")}catch{toast("復元できませんでした")}});$("#resetBtn").addEventListener("click",()=>{if(confirm("試作データを初期化しますか？")){state=clone(D);save();renderAll();toast("初期化しました")}});
+function renderAll(){renderHome();renderCalendar();renderTodo();renderWork();renderHandover();renderInquiry();loadSettings()}
+renderAll();
 })();
